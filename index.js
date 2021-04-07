@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 const server = require("http").createServer(app);
 const io = require("socket.io")(server, {
   cors: {
-    origin: "http://127.0.0.1:3000",
+    origin: ["http://127.0.0.1:3000", process.env.APP_URL],
     methods: ["GET", "POST"],
   },
 });
@@ -35,9 +35,73 @@ io.on("connection", (socket) => {
       io.to(meetId).emit("user_joined", socketId);
     }
   });
+
+  socket.on("send_offer", function (data) {
+    const socketId = data?.socketId;
+    const sdp = data?.sdp;
+    const id = data?.id;
+    console.log(socketId);
+    if (
+      socketId !== null &&
+      socketId !== undefined &&
+      sdp !== null &&
+      sdp !== undefined
+    ) {
+      const result = {
+        sdp,
+        socketId: this.id,
+        id,
+      };
+      io.to(socketId).emit("get_offer", result);
+    }
+  });
+
+  socket.on("send_answer", function (data) {
+    const socketId = data?.socketId;
+    const sdp = data?.sdp;
+    const id = data?.id;
+
+    if (
+      socketId !== null &&
+      socketId !== undefined &&
+      sdp !== null &&
+      sdp !== undefined
+    ) {
+      const result = {
+        sdp,
+        socketId: this.id,
+        id,
+      };
+      io.to(socketId).emit("get_answer", result);
+    }
+  });
+
+  socket.on("send_ice_candidate", function (data) {
+    const socketId = data?.socketId;
+    const candidates = data?.candidates;
+    const pcId = data?.pcId;
+    if (
+      socketId !== null &&
+      socketId !== undefined &&
+      candidates != null &&
+      candidates !== undefined &&
+      pcId !== null &&
+      pcId !== undefined
+    ) {
+      const result = {
+        candidates,
+        pcId,
+      };
+      io.to(socketId).emit("get_ice_candidates", result);
+    }
+  });
 });
 
-var allowList = ["http://127.0.0.1:3000", "http://localhost:3000"];
+var allowList = [
+  "http://127.0.0.1:3000",
+  "http://localhost:3000",
+  process.env.APP_URL,
+];
 
 app.use(
   cors({
