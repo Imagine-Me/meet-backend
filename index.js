@@ -6,7 +6,11 @@ const mongoose = require("mongoose");
 const server = require("http").createServer(app);
 const io = require("socket.io")(server, {
   cors: {
-    origin: ["http://127.0.0.1:3000", process.env.APP_URL],
+    origin: [
+      "http://127.0.0.1:3000",
+      "http://localhost:3000",
+      process.env.APP_URL,
+    ],
     methods: ["GET", "POST"],
   },
 });
@@ -32,47 +36,72 @@ io.on("connection", (socket) => {
     if (meetId !== null && meetId !== undefined) {
       this.meetId = meetId;
       this.join(meetId);
-      io.to(meetId).emit("user_joined", socketId);
+      const users = Array.from(io.sockets.adapter.rooms.get(meetId)).filter(
+        (id) => id !== socketId
+      );
+      io.to(socketId).emit("get_users", users);
     }
   });
 
+  socket.on("get_offer", function (data) {
+    const socketFrom = data?.socketFrom;
+    const socketTo = data?.socketTo;
+    io.to(socketTo).emit("get_offer_request", socketFrom);
+  });
+
   socket.on("send_offer", function (data) {
-    const socketId = data?.socketId;
+    const socketTo = data?.socketTo;
+    const socketFrom = data?.socketFrom;
     const sdp = data?.sdp;
     const id = data?.id;
-    console.log(socketId);
+    const name = data?.name;
+    const photo = data?.photo;
+    const audio = data?.audio;
     if (
-      socketId !== null &&
-      socketId !== undefined &&
+      socketTo !== null &&
+      socketTo !== undefined &&
+      socketFrom !== null &&
+      socketFrom !== undefined &&
       sdp !== null &&
       sdp !== undefined
     ) {
       const result = {
         sdp,
-        socketId: this.id,
+        socketFrom,
         id,
+        name,
+        photo,
+        audio,
       };
-      io.to(socketId).emit("get_offer", result);
+      io.to(socketTo).emit("get_offer", result);
     }
   });
 
   socket.on("send_answer", function (data) {
-    const socketId = data?.socketId;
+    const socketTo = data?.socketTo;
+    const socketFrom = data?.socketFrom;
     const sdp = data?.sdp;
     const id = data?.id;
-
+    const name = data?.name;
+    const photo = data?.photo;
+    const audio = data?.audio;
     if (
-      socketId !== null &&
-      socketId !== undefined &&
+      socketTo !== null &&
+      socketTo !== undefined &&
+      socketFrom !== null &&
+      socketFrom !== undefined &&
       sdp !== null &&
       sdp !== undefined
     ) {
       const result = {
         sdp,
-        socketId: this.id,
+        socketFrom,
         id,
+        name,
+        photo,
+        audio,
       };
-      io.to(socketId).emit("get_answer", result);
+      io.to(socketTo).emit("get_answer", result);
     }
   });
 
@@ -94,6 +123,20 @@ io.on("connection", (socket) => {
       };
       io.to(socketId).emit("get_ice_candidates", result);
     }
+  });
+
+  socket.on("toggle_audio", function (data) {
+    const result = {
+      ...data,
+      socket: this.id,
+    };
+    io.to(this.meetId).emit("audio_toggle", result);
+  });
+
+
+  socket.on("disconnect", function () {
+    console.log("disconnected..");
+    io.to(this.meetId).emit("disconnected", this.id);
   });
 });
 
@@ -160,4 +203,6 @@ app.post("/join", async (req, res) => {
   res.send({ status: true, meetId: value.meetId });
 });
 
-server.listen(PORT, () => console.log(`APP RUNNING ON PORT ${PORT}`));
+server.listen(PORT, () =>
+  console.log(`APP RUNNING ON PORT ${PORT} ${process.env.APP_URL}`)
+);
