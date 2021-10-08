@@ -1,4 +1,4 @@
-## Meet backend (Signalling server)
+## Meet backend (Signaling server)
 
 This is the signalling server for the meet application using webRTC. The front-end can be found [here](https://github.com/Imagine-Me/meet)
 
