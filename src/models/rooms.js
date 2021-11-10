@@ -6,10 +6,6 @@ const RoomSchema = new mongoose.Schema({
         type: String,
         required: true,
       },
-      email: {
-        type: String,
-        required: true,
-      },
       image: String,
     },
   ],

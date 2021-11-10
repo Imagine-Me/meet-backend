@@ -4,13 +4,16 @@ const cors = require("cors");
 require("dotenv").config();
 const mongoose = require("mongoose");
 const server = require("http").createServer(app);
+
+var allowList = [
+  "http://127.0.0.1:3000",
+  "http://localhost:3000",
+  process.env.APP_URL,
+];
+
 const io = require("socket.io")(server, {
   cors: {
-    origin: [
-      "http://127.0.0.1:3000",
-      "http://localhost:3000",
-      process.env.APP_URL,
-    ],
+    origin: allowList,
     methods: ["GET", "POST"],
   },
 });
@@ -133,18 +136,11 @@ io.on("connection", (socket) => {
     io.to(this.meetId).emit("audio_toggle", result);
   });
 
-
   socket.on("disconnect", function () {
     console.log("disconnected..");
     io.to(this.meetId).emit("disconnected", this.id);
   });
 });
-
-var allowList = [
-  "http://127.0.0.1:3000",
-  "http://localhost:3000",
-  process.env.APP_URL,
-];
 
 app.use(
   cors({
@@ -177,7 +173,6 @@ app.post("/host", (req, res) => {
 app.post("/join", async (req, res) => {
   const schema = Joi.object({
     meetId: Joi.string().required(),
-    email: Joi.string().required(),
     name: Joi.string().required(),
   });
 
@@ -192,7 +187,6 @@ app.post("/join", async (req, res) => {
   if (!isUserAlreadyJoined) {
     users.push({
       name: value.name,
-      email: value.email,
     });
     await room.findOneAndUpdate(
       { _id: roomData._id },
