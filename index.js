@@ -8,6 +8,8 @@ const server = require("http").createServer(app);
 var allowList = [
   "http://127.0.0.1:3000",
   "http://localhost:3000",
+  "http://192.168.0.102:3000",
+  "http://192.168.0.101:3000",
   process.env.APP_URL,
 ];
 
@@ -29,7 +31,7 @@ mongoose.connect(process.env.MONGO_URL, {
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", function () {
-  console.log("MONGO DB CONNECTED...");
+  
 });
 
 io.on("connection", (socket) => {
@@ -47,6 +49,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("get_offer", function (data) {
+    
     const socketFrom = data?.socketFrom;
     const socketTo = data?.socketTo;
     io.to(socketTo).emit("get_offer_request", socketFrom);
@@ -58,7 +61,6 @@ io.on("connection", (socket) => {
     const sdp = data?.sdp;
     const id = data?.id;
     const name = data?.name;
-    const photo = data?.photo;
     const audio = data?.audio;
     if (
       socketTo !== null &&
@@ -73,7 +75,6 @@ io.on("connection", (socket) => {
         socketFrom,
         id,
         name,
-        photo,
         audio,
       };
       io.to(socketTo).emit("get_offer", result);
@@ -86,7 +87,6 @@ io.on("connection", (socket) => {
     const sdp = data?.sdp;
     const id = data?.id;
     const name = data?.name;
-    const photo = data?.photo;
     const audio = data?.audio;
     if (
       socketTo !== null &&
@@ -101,7 +101,6 @@ io.on("connection", (socket) => {
         socketFrom,
         id,
         name,
-        photo,
         audio,
       };
       io.to(socketTo).emit("get_answer", result);
@@ -112,6 +111,7 @@ io.on("connection", (socket) => {
     const socketId = data?.socketId;
     const candidates = data?.candidates;
     const pcId = data?.pcId;
+    
     if (
       socketId !== null &&
       socketId !== undefined &&
@@ -119,7 +119,8 @@ io.on("connection", (socket) => {
       candidates !== undefined &&
       pcId !== null &&
       pcId !== undefined
-    ) {
+      ) {
+      
       const result = {
         candidates,
         pcId,
@@ -137,7 +138,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", function () {
-    console.log("disconnected..");
+    
     io.to(this.meetId).emit("disconnected", this.id);
   });
 });
@@ -174,6 +175,7 @@ app.post("/join", async (req, res) => {
   const schema = Joi.object({
     meetId: Joi.string().required(),
     name: Joi.string().required(),
+    email: Joi.string()
   });
 
   const { value, error } = schema.validate(req.body);
