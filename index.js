@@ -30,9 +30,7 @@ mongoose.connect(process.env.MONGO_URL, {
 });
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
-db.once("open", function () {
-  
-});
+db.once("open", function () {});
 
 io.on("connection", (socket) => {
   socket.on("room", function (data) {
@@ -49,7 +47,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("get_offer", function (data) {
-    
     const socketFrom = data?.socketFrom;
     const socketTo = data?.socketTo;
     io.to(socketTo).emit("get_offer_request", socketFrom);
@@ -111,7 +108,7 @@ io.on("connection", (socket) => {
     const socketId = data?.socketId;
     const candidates = data?.candidates;
     const pcId = data?.pcId;
-    
+
     if (
       socketId !== null &&
       socketId !== undefined &&
@@ -119,8 +116,7 @@ io.on("connection", (socket) => {
       candidates !== undefined &&
       pcId !== null &&
       pcId !== undefined
-      ) {
-      
+    ) {
       const result = {
         candidates,
         pcId,
@@ -138,7 +134,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", function () {
-    
     io.to(this.meetId).emit("disconnected", this.id);
   });
 });
@@ -175,7 +170,6 @@ app.post("/join", async (req, res) => {
   const schema = Joi.object({
     meetId: Joi.string().required(),
     name: Joi.string().required(),
-    email: Joi.string()
   });
 
   const { value, error } = schema.validate(req.body);
@@ -184,18 +178,14 @@ app.post("/join", async (req, res) => {
   }
   const roomData = await room.findOne({ _id: value.meetId });
   const users = [...roomData.users];
-
-  const isUserAlreadyJoined = users.some((user) => user.email === value.email);
-  if (!isUserAlreadyJoined) {
-    users.push({
-      name: value.name,
-    });
-    await room.findOneAndUpdate(
-      { _id: roomData._id },
-      { users },
-      { useFindAndModify: false }
-    );
-  }
+  users.push({
+    name: value.name,
+  });
+  await room.findOneAndUpdate(
+    { _id: roomData._id },
+    { users },
+    { useFindAndModify: false }
+  );
   res.send({ status: true, meetId: value.meetId });
 });
 
