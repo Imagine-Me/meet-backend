@@ -1,9 +1,10 @@
-const express = require("express");
-const app = express();
+import { Socket } from "socket.io";
+const express = require('express')
+const application = express();
 const cors = require("cors");
 require("dotenv").config();
 const mongoose = require("mongoose");
-const server = require("http").createServer(app);
+const server = require("http").createServer(application);
 
 var allowList = [
   "http://127.0.0.1:3000",
@@ -17,8 +18,8 @@ const io = require("socket.io")(server, {
     methods: ["GET", "POST"],
   },
 });
-const room = require("./src/models/rooms");
-const Joi = require("joi");
+import room from './models/rooms';
+import Joi = require("joi");
 
 const PORT = process.env.PORT || 3002;
 
@@ -28,10 +29,20 @@ mongoose.connect(process.env.MONGO_URL, {
 });
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
-db.once("open", function () {});
+db.once("open", function () { });
 
-io.on("connection", (socket) => {
-  socket.on("room", function (data) {
+interface ConnectionType {
+  socketTo: string;
+  socketFrom: string;
+  sdp: any;
+  id: string;
+  name: string;
+  audio: boolean;
+  video: boolean
+}
+
+io.on("connection", (socket: Socket) => {
+  socket.on("room", function (this: any, data) {
     const meetId = data?.meetId;
     const socketId = data?.socketId;
     if (meetId !== null && meetId !== undefined) {
@@ -50,60 +61,12 @@ io.on("connection", (socket) => {
     io.to(socketTo).emit("get_offer_request", socketFrom);
   });
 
-  socket.on("send_offer", function (data) {
-    const socketTo = data?.socketTo;
-    const socketFrom = data?.socketFrom;
-    const sdp = data?.sdp;
-    const id = data?.id;
-    const name = data?.name;
-    const audio = data?.audio;
-    const video = data?.video;
-    if (
-      socketTo !== null &&
-      socketTo !== undefined &&
-      socketFrom !== null &&
-      socketFrom !== undefined &&
-      sdp !== null &&
-      sdp !== undefined
-    ) {
-      const result = {
-        sdp,
-        socketFrom,
-        id,
-        name,
-        audio,
-        video,
-      };
-      io.to(socketTo).emit("get_offer", result);
-    }
+  socket.on("send_offer", function (data: ConnectionType) {
+    io.to(data.socketTo).emit("get_offer", data);
   });
 
-  socket.on("send_answer", function (data) {
-    const socketTo = data?.socketTo;
-    const socketFrom = data?.socketFrom;
-    const sdp = data?.sdp;
-    const id = data?.id;
-    const name = data?.name;
-    const audio = data?.audio;
-    const video = data?.video;
-    if (
-      socketTo !== null &&
-      socketTo !== undefined &&
-      socketFrom !== null &&
-      socketFrom !== undefined &&
-      sdp !== null &&
-      sdp !== undefined
-    ) {
-      const result = {
-        sdp,
-        socketFrom,
-        id,
-        name,
-        video,
-        audio,
-      };
-      io.to(socketTo).emit("get_answer", result);
-    }
+  socket.on("send_answer", function (data: ConnectionType) {
+    io.to(data.socketTo).emit("get_answer", data);
   });
 
   socket.on("send_ice_candidate", function (data) {
@@ -127,7 +90,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("toggle_audio", function (data) {
+  socket.on("toggle_audio", function (this: any, data) {
     const result = {
       socket: socket.id,
       ...data
@@ -135,7 +98,7 @@ io.on("connection", (socket) => {
     io.to(this.meetId).emit("audio_toggle", result);
   });
 
-  socket.on("toggle_video", function (data) {
+  socket.on("toggle_video", function (this: any, data) {
     const result = {
       socket: socket.id,
       ...data
@@ -143,14 +106,14 @@ io.on("connection", (socket) => {
     io.to(this.meetId).emit("video_toggle", result);
   });
 
-  socket.on("disconnect", function () {
+  socket.on("disconnect", function (this: any) {
     io.to(this.meetId).emit("disconnected", this.id);
   });
 });
 
-app.use(
+application.use(
   cors({
-    origin(origin, callback) {
+    origin(origin: any, callback: any) {
       if (!origin) {
         return callback(null, true);
       }
@@ -164,19 +127,20 @@ app.use(
   })
 );
 
-app.use(express.json());
+application.use(express.json());
+application.set('case sensitive routing', true)
 
-app.get("/", (req, res) => {
+application.get("/", (req: any, res: any) => {
   res.send("Hello world");
 });
 
-app.post("/host", (req, res) => {
+application.post("/host", (req: any, res: any) => {
   const user = new room({ users: req.body });
   user.save();
   res.send({ status: true, meetId: user._id });
 });
 
-app.post("/join", async (req, res) => {
+application.post("/join", async (req: any, res: any) => {
   const schema = Joi.object({
     meetId: Joi.string().required(),
     name: Joi.string().required(),
