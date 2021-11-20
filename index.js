@@ -8,8 +8,6 @@ const server = require("http").createServer(app);
 var allowList = [
   "http://127.0.0.1:3000",
   "http://localhost:3000",
-  "http://192.168.0.102:3000",
-  "http://192.168.0.101:3000",
   process.env.APP_URL,
 ];
 
@@ -59,6 +57,7 @@ io.on("connection", (socket) => {
     const id = data?.id;
     const name = data?.name;
     const audio = data?.audio;
+    const video = data?.video;
     if (
       socketTo !== null &&
       socketTo !== undefined &&
@@ -73,6 +72,7 @@ io.on("connection", (socket) => {
         id,
         name,
         audio,
+        video,
       };
       io.to(socketTo).emit("get_offer", result);
     }
@@ -85,6 +85,7 @@ io.on("connection", (socket) => {
     const id = data?.id;
     const name = data?.name;
     const audio = data?.audio;
+    const video = data?.video;
     if (
       socketTo !== null &&
       socketTo !== undefined &&
@@ -98,6 +99,7 @@ io.on("connection", (socket) => {
         socketFrom,
         id,
         name,
+        video,
         audio,
       };
       io.to(socketTo).emit("get_answer", result);
@@ -127,10 +129,18 @@ io.on("connection", (socket) => {
 
   socket.on("toggle_audio", function (data) {
     const result = {
-      ...data,
-      socket: this.id,
-    };
+      socket: socket.id,
+      ...data
+    }
     io.to(this.meetId).emit("audio_toggle", result);
+  });
+
+  socket.on("toggle_video", function (data) {
+    const result = {
+      socket: socket.id,
+      ...data
+    }
+    io.to(this.meetId).emit("video_toggle", result);
   });
 
   socket.on("disconnect", function () {
